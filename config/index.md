@@ -162,7 +162,7 @@ export default defineConfig(({ command, mode }) => {
 
   - `2.0.0-beta.70` 以降、文字列の値は純粋な式として評価されるので、文字列の定数を定義する場合は、明示的に引用符で囲う必要があります（例 `JSON.stringify` を使う）。
 
-  - マッチした部分が単語の境界（`\b`）で囲まれている場合のみ置換されます。
+  - マッチした部分が他の文字、数字、`_` または `$` で囲まれていない場合のみ置換されます。
 
   ::: warning
   構文解析なしの単純なテキスト置換として実装されているため、`define` は「定数」にのみ使用することをおすすめします。
@@ -250,6 +250,10 @@ export default defineConfig(({ command, mode }) => {
 
   Vite には「許可された条件」のリストがあり、許可されたリストにある最初の条件と一致します。 デフォルトで許可される条件は、`import`、`module`、`browser`、`default` と、現在のモードに基づく `production/development` です。`resolve.conditions` 設定オプションを使用すると、追加の許可条件を指定できます。
 
+  :::warning サブパスのエクスポートの解決
+  エクスポートのキーが "/" で終わるのは Node では非推奨で、うまく動作しない可能性があります。代わりに [`*` サブパスパターン](https://nodejs.org/api/packages.html#package-entry-points) を使用するよう、パッケージ作者に連絡してください。
+  :::
+
 ### resolve.mainFields
 
 - **型:** `string[]`
@@ -316,7 +320,7 @@ export default defineConfig(({ command, mode }) => {
 
 - **型:** `Record<string, object>`
 
-  CSS プリプロセッサに渡すオプションを指定します。例:
+  CSS プリプロセッサに渡すオプションを指定します。オプションのキーとしてファイルの拡張子を使用します。例:
 
   ```js
   export default defineConfig({
@@ -324,11 +328,22 @@ export default defineConfig(({ command, mode }) => {
       preprocessorOptions: {
         scss: {
           additionalData: `$injectedColor: orange;`
+        },
+        styl: {
+          additionalData: `$injectedColor ?= orange`
         }
       }
     }
   })
   ```
+
+### css.devSourcemap
+
+- **実験的機能**
+- **型:** `boolean`
+- **デフォルト:** `false`
+
+  開発時にソースマップを有効にするかどうか。
 
 ### json.namedExports
 
@@ -344,7 +359,7 @@ export default defineConfig(({ command, mode }) => {
 
   `true` に設定すると、インポートされた JSON は `export default JSON.parse("...")` に変換されます。これは特に JSON ファイルが大きい場合、オブジェクトリテラルよりも大幅にパフォーマンスが向上します。
 
-  有効にすると、名前付きインポートは無効になります。 
+  有効にすると、名前付きインポートは無効になります。
 
 ### esbuild
 
@@ -361,7 +376,7 @@ export default defineConfig(({ command, mode }) => {
   })
   ```
 
-  デフォルトでは esbuild は `ts`, `jsx`, `tsx` ファイルに適用されます。`esbuild.include` と `esbuild.exclude` でカスタマイズでき、どちらも `string | RegExp | (string | RegExp)[]` の型を想定しています。
+  デフォルトでは esbuild は `ts`, `jsx`, `tsx` ファイルに適用されます。`esbuild.include` と `esbuild.exclude` でカスタマイズでき、正規表現か [picomatch](https://github.com/micromatch/picomatch#globbing-features) パターン、もしくはそれらの配列を指定します。
 
   また、`esbuild.jsxInject` を使用すると、esbuild で変換されたすべてのファイルに対して JSX ヘルパの import を自動的に注入できます:
 
@@ -380,7 +395,7 @@ export default defineConfig(({ command, mode }) => {
 - **型:** `string | RegExp | (string | RegExp)[]`
 - **関連:** [静的アセットの取り扱い](/guide/assets)
 
-  静的アセットとして扱う追加の [picomatch パターン](https://github.com/micromatch/picomatch)を指定します。そして:
+  静的アセットとして扱う追加の [picomatch パターン](https://github.com/micromatch/picomatch#globbing-features)を指定します。そして:
 
   - HTML から参照されたり、`fetch` や XHR で直接リクエストされたりすると、プラグインの変換パイプラインから除外されます。
 
@@ -444,7 +459,7 @@ export default defineConfig(({ command, mode }) => {
 ### server.port
 
 - **型:** `number`
-- **デフォルト:** `3000`
+- **デフォルト:** `5173`
 
   サーバのポートを指定します。このポートがすでに使用されている場合、Vite は次に使用可能なポートを自動的に試すので、サーバが最終的にリッスンする実際のポートとは異なる場合があることに注意してください。
 
@@ -516,7 +531,7 @@ export default defineConfig(({ command, mode }) => {
         },
         // Web ソケット か socket.io をプロキシ化
         '/socket.io': {
-          target: 'ws://localhost:3000',
+          target: 'ws://localhost:5173',
           ws: true
         }
       }
@@ -530,6 +545,12 @@ export default defineConfig(({ command, mode }) => {
 
   開発サーバの CORS を設定します。これはデフォルトで有効になっており、どんなオリジンも許可します。[オプションオブジェクト](https://github.com/expressjs/cors)を渡して微調整するか、`false` で無効にします。
 
+### server.headers
+
+- **型:** `OutgoingHttpHeaders`
+
+  サーバのレスポンスヘッダを指定します。
+
 ### server.force
 
 - **型:** `boolean`
@@ -539,17 +560,15 @@ export default defineConfig(({ command, mode }) => {
 
 ### server.hmr
 
-- **型:** `boolean | { protocol?: string, host?: string, port?: number | false, path?: string, timeout?: number, overlay?: boolean, clientPort?: number, server?: Server }`
+- **型:** `boolean | { protocol?: string, host?: string, port?: number, path?: string, timeout?: number, overlay?: boolean, clientPort?: number, server?: Server }`
 
   HMR 接続の無効化または設定（HMR WebSocket が http サーバと異なるアドレスを使用する必要がある場合）。
 
   `server.hmr.overlay` を `false` に設定すると、サーバエラーのオーバレイが無効になります。
 
-  ポートのないドメインに接続する場合は `server.hmr.port` を `false` に設定します。
-
   `clientPort` は、クライアント側のポートのみを上書きする高度なオプションで、クライアントコードが探すポートとは異なるポートで WebSocket を配信できます。開発サーバの前で SSL プロキシを使用している場合に便利です。
 
-  `server.middlewareMode` または `server.https` を使用している場合、`server.hmr.server` を HTTP(S) サーバに割り当てると、HMR のセキュアな接続要求がサーバ経由で処理されます。これは、自己署名証明書を使用する場合や、Vite を単一ポートでネットワーク上に公開したい場合に役立ちます。
+  `server.hmr.server` を指定すると、Vite は指定されたサーバを通して HMR 接続要求を処理します。ミドルウェアモードでない場合、Vite は既存のサーバを通して HMR 接続要求を処理しようとします。これは、自己署名証明書を使用する場合や、Vite を単一ポートでネットワーク上に公開したい場合に役立ちます。
 
 ### server.watch
 
@@ -612,6 +631,12 @@ async function createServer() {
 
 createServer()
 ```
+
+### server.base
+
+- **型:** `string | undefined`
+
+  Vite をサブフォルダとしてプロキシする場合に使用するため、http リクエストの前にこのフォルダを追加します。最初と最後は `/` の文字にする必要があります。
 
 ### server.fs.strict
 
@@ -721,7 +746,7 @@ export default defineConfig({
   ```
 
   注意: この Polyfill は[ライブラリモード](/guide/build#ライブラリモード)には **適用されません** 。ネイティブの動的インポートを持たないブラウザをサポートする必要がある場合は、ライブラリでの使用は避けた方が良いでしょう。
-  
+
 ### build.outDir
 
 - **型:** `string`
@@ -995,7 +1020,6 @@ export default defineConfig({
 
   - `external` も省略されています。Vite の `optimizeDeps.exclude` オプションを使用してください
   - `plugins` は Vite の依存関係プラグインとマージされます
-  - `keepNames` は非推奨の `optimizeDeps.keepNames` よりも優先されます
 
 ## SSR オプション
 

@@ -11,7 +11,7 @@ Vite は、確立されたパターンをすぐに提供できるように努め
 プラグインを作成する際には、`vite.config.js` にインラインで記述できます。そのために新しいパッケージを作成する必要はありません。あるプラグインが自分のプロジェクトで役に立ったことがわかったら、[エコシステムにいる](https://chat.vitejs.dev)他の人を助けるために共有することを検討してください。
 
 ::: tip
-プラグインを学んだり、デバッグしたり、オーサリングしたりする際には [vite-plugin-inspect](https://github.com/antfu/vite-plugin-inspect) をプロジェクトに含めることをお勧めします。これにより、Vite プラグインの中間状態を検査できます。インストール後、`localhost:3000/__inspect/` にアクセスして、プロジェクトのモジュールや変換スタックを検査できます。インストール方法については、[vite-plugin-inspect のドキュメント](https://github.com/antfu/vite-plugin-inspect)をご覧ください。
+プラグインを学んだり、デバッグしたり、オーサリングしたりする際には [vite-plugin-inspect](https://github.com/antfu/vite-plugin-inspect) をプロジェクトに含めることをお勧めします。これにより、Vite プラグインの中間状態を検査できます。インストール後、`localhost:5173/__inspect/` にアクセスして、プロジェクトのモジュールや変換スタックを検査できます。インストール方法については、[vite-plugin-inspect のドキュメント](https://github.com/antfu/vite-plugin-inspect)をご覧ください。
 ![vite-plugin-inspect](/images/vite-plugin-inspect.png)
 :::
 
@@ -460,7 +460,7 @@ apply(config, { command }) {
 - [`moduleParsed`](https://rollupjs.org/guide/en/#moduleparsed) フックを使用していない。
 - bundle-phase フックと output-phase フックの間に強い結合がない。
 
-Rollup プラグインがビルドフェーズでのみ意味を持つ場合は、代わりに `build.rollupOptions.plugins` で指定できます。
+Rollup プラグインがビルドフェーズでのみ意味を持つ場合は、代わりに `build.rollupOptions.plugins` で指定できます。これは `enforce: 'post'` と `apply: 'build'` を設定した Vite プラグインと同じように動作します。
 
 Vite のみのプロパティで既存の Rollup プラグインを拡張することもできます:
 
@@ -561,4 +561,20 @@ export default defineConfig({
     }
   ]
 })
+```
+
+### カスタムイベント用の TypeScript
+
+`CustomEventMap` インタフェイスを拡張することで、カスタムイベントに型をつけられます:
+
+```ts
+// events.d.ts
+import 'vite/types/customEvent'
+
+declare module 'vite/types/customEvent' {
+  interface CustomEventMap {
+    'custom:foo': { msg: string }
+    // 'event-key': payload
+  }
+}
 ```

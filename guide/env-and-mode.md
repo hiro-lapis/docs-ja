@@ -37,7 +37,7 @@ Vite は、[環境ディレクトリ](/config/#envdir)にある以下のファ�
 
 特定のモードの env ファイル（例: `.env.production`）は、汎用の env ファイル（例: `.env`）よりも優先されます。
 
-また、Vite の実行時に既に存在している環境変数は最も優先度が高く、`.env` ファイルによって上書きされることはありません。
+また、Vite の実行時に既に存在している環境変数は最も優先度が高く、`.env` ファイルによって上書きされることはありません。例えば、`VITE_SOME_KEY=123 vite build` を実行する場合。
 
 `.env` は Vite 起動時に読み込まれます。変更した後はサーバを再起動してください。
 :::
@@ -78,6 +78,14 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+```
+
+コードがブラウザー環境の型、例えば [DOM](https://github.com/microsoft/TypeScript/blob/main/lib/lib.dom.d.ts) や [WebWorker](https://github.com/microsoft/TypeScript/blob/main/lib/lib.webworker.d.ts) に依存している場合は、`tsconfig.json` 内の [lib](https://www.typescriptlang.org/tsconfig#lib) フィールドを更新しましょう。
+
+```json
+{
+  "lib": ["WebWorker"]
 }
 ```
 

@@ -30,7 +30,7 @@ Vite はネイティブ ESM を介して [HMR API](./api-hmr) を提供します
 
 Vite は `.ts` ファイルをインポートすることをサポートしています。
 
-Vite は `.ts` ファイルに対してのみ変換を実行し、型チェックは **実行しません**。型チェックは IDE とビルドの過程にて実行されることを前提としています (ビルドスクリプト内で `tsc --noEmit` を実行するか、`vue-tsc` をインストールして `vue-tsc --noEmit` を実行することで `*.vue` ファイルの型チェックもできます)。
+Vite は `.ts` ファイルに対してトランスパイルをするだけで、型チェックは **実行しません**。型チェックは IDE とビルドの過程にて実行されることを前提としています (ビルドスクリプト内で `tsc --noEmit` を実行するか、`vue-tsc` をインストールして `vue-tsc --noEmit` を実行することで `*.vue` ファイルの型チェックもできます)。
 
 Vite は [esbuild](https://github.com/evanw/esbuild) を用いて TypeScript を JavaScript に変換します。これは、vanilla の `tsc` よりも約 20〜30 倍速く、HMR の更新は 50 ミリ秒未満でブラウザに反映されます
 
@@ -300,10 +300,10 @@ const modules = {
 }
 ```
 
-`import.meta.glob` と `import.meta.globEager` は[アセットを文字列としてインポートする](./assets#アセットを文字列としてインポートする)と同じようにファイルを文字列としてインポートすることもサポートしています。ここでは [Import Assertions](https://github.com/tc39/proposal-import-assertions#synopsis) 構文を使ってインポートします。
+`import.meta.glob` と `import.meta.globEager` は [Import Reflection](https://github.com/tc39/proposal-import-reflection) 構文でファイルを文字列としてインポートすることもサポートしています（[アセットを文字列としてインポートする](./assets#アセットを文字列としてインポートする)と同様）。
 
 ```js
-const modules = import.meta.glob('./dir/*.js', { assert: { type: 'raw' } })
+const modules = import.meta.glob('./dir/*.js', { as: 'raw' })
 ```
 
 上のコードは以下のように変換されます:
@@ -319,7 +319,7 @@ const modules = {
 注意点:
 
 - これは Vite のみの機能で、Web または ES の標準ではありません。
-- Glob パターンはインポート指定子のように扱われます。相対パス（`./` で始まる）または絶対パス（`/` で始まり、プロジェクトルートに対して解決される）のいずれかでなければなりません。
+- Glob パターンはインポート指定子のように扱われます。相対パス（`./` で始まる）か絶対パス（`/` で始まり、プロジェクトルートに対して相対的に解決される）、またはエイリアスのパス（[`resolve.alias` オプション](/config/#resolve-alias) 参照）のいずれかでなければなりません。
 - Glob のマッチングは `fast-glob` を介して行われます。サポートされている Glob パターンについては、その[ドキュメント](https://github.com/mrmlnc/fast-glob#pattern-syntax)を確認してください。
 - また、glob インポートは変数を受け付けないので、文字列のパターンを直接渡す必要があることにも注意が必要です。
 - Glob パターンは外側の引用符と同じ引用符の文字列（つまり `'`, `"`, `` ` ``）を含むことはできません。例えば `'/Tom\'s files/**'` は、代わりに `"/Tom's files/**"` を使用してください。
